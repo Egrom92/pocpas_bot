@@ -128,4 +128,24 @@ module.exports = class SceneGenerator {
     return createPassword
   }
 
+  getAllPasswords() {
+    const getAllPasswords = new Scenes.BaseScene('getAllPasswords')
+
+    getAllPasswords.enter(ctx => {
+      const userID = ctx.message.from.id
+
+      axios.post(getApiUrl(['subscriber', userID, 'all']))
+        .then(async res => {
+          let allPas = '';
+          await res.data.map(el => {
+            allPas += `${el.site_name}  _________  <code>${el.password}</code>\n\n`
+          })
+          console.log(allPas);
+          ctx.reply(allPas, {parse_mode: 'HTML'})
+        })
+    })
+
+    return getAllPasswords
+  }
+
 }

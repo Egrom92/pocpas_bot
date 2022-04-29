@@ -9,12 +9,13 @@ const checkMasterPassword = curScene.checkMasterPasswordScene()
 const createMasterPassword = curScene.createMasterPassword()
 const enterMasterPassword = curScene.enterMasterPassword()
 const createPassword = curScene.createPassword()
+const getAllPasswords = curScene.getAllPasswords()
 
 let authorized = false
 let greeted = false
 
 
-const stage = new Scenes.Stage([checkMasterPassword, createMasterPassword, enterMasterPassword, createPassword])
+const stage = new Scenes.Stage([checkMasterPassword, createMasterPassword, enterMasterPassword, createPassword, getAllPasswords])
 
 bot.use(session());
 bot.use(stage.middleware());
@@ -38,9 +39,8 @@ bot.command('get', async ctx => {
 
 bot.command('all', async ctx => {
   if (!authorized) {
-    return await ctx.scene.enter('masterPassword')
+    return await ctx.scene.enter('getAllPasswords')
   }
-  ctx.reply('Вот вам список пароль')
 });
 
 
