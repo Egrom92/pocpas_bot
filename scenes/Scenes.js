@@ -13,7 +13,7 @@ module.exports = class SceneGenerator {
       const userID = ctx.message.from.id
 
       await axios.get(getApiUrl(['subscriber', userID]))
-        .then( async res => {
+        .then(async res => {
           if (res.data) {
             ctx.scene.enter('enterMasterPassword')
             await ctx.scene.leave()
@@ -21,9 +21,7 @@ module.exports = class SceneGenerator {
             ctx.scene.enter('createMasterPassword')
           }
         })
-        .catch(function (err) {
-          console.log(err);
-        })
+        .catch(err => console.log(err))
     })
 
     return checkMasterPassword
@@ -55,6 +53,7 @@ module.exports = class SceneGenerator {
               await ctx.scene.reenter()
             }
           })
+          .catch(err => console.log(err))
       } else {
         ctx.reply('Пароль не может содержать кирилицу')
         ctx.scene.reenter()
@@ -66,7 +65,7 @@ module.exports = class SceneGenerator {
     return enterMasterPassword
   }
 
-  createMasterPassword () {
+  createMasterPassword() {
     const createMasterPassword = new Scenes.BaseScene('createMasterPassword')
     createMasterPassword.enter(ctx => ctx.reply('У вас нету акаунта.  Введите пожалуйста мастер пароль'))
 
@@ -74,23 +73,26 @@ module.exports = class SceneGenerator {
       const pass = ctx.message.text;
 
       if (pass) {
-        if(!isKyr(pass)) {
+        if (!isKyr(pass)) {
           const {id, first_name, last_name, username, language_code} = ctx.message.from
           const query = {
             tg_id: id, first_name, last_name, username, language_code, master_password: pass
           }
           console.log('Create pass link ---- ', getApiUrl('subscriber', query));
           await axios.post(getApiUrl('subscriber'), query)
-            .then( async res => {
+            .then(async res => {
               if (res.data) {
                 console.log(res.data);
-                await ctx.reply('Акаунт создан')
-                await ctx.scene.enter('createPassword')
+                await ctx.reply('Акаунт создан \n\n' +
+                  'Создать новый пароль - /add {название сайта} \n\n' +
+                  'Запросить пароль - /get {название сайта} \n\n' +
+                  'Запроси список сайтов - /all \n\n' +
+                  'Удалить сайт - /del {название сайта} \n\n' +
+                  'Редактировать - /edit {название сайта}')
+                ctx.scene.leave()
               }
             })
-            .catch(function (err) {
-              console.log(err);
-            })
+            .catch(err => console.log(err))
         } else {
           ctx.reply('Пароль не может содержать кирилицу')
           ctx.scene.reenter()
@@ -102,10 +104,28 @@ module.exports = class SceneGenerator {
 
   createPassword() {
     const createPassword = new Scenes.BaseScene('createPassword')
-    createPassword.enter(ctx => ctx.reply('Создайте свой первый пароль \n\n' +
-      'Для этого есть команда - /add {название сайта}'))
-    
-    return createPasswordж
+    createPassword.enter(async ctx => {
+      const userID = ctx.message.from.id
+      const site = ctx.message.text.replace('/add', '').trim()
+
+      if (!site.length) {
+        await ctx.reply('Вы забыли написать название сайта \n \n' +
+          'Создать новый пароль - /add {название сайта}')
+      } else {
+        axios.post(getApiUrl(['subscriber', userID, 'add']), {site})
+          .then(res => {
+            if (res.data.status) {
+              ctx.reply(`Твой сайт ${site} и пароль <code>${res.data.pass}</code>`, {parse_mode: 'HTML'})
+            } else
+              ctx.reply(`${site} уже был есть и пароль <code>${res.data.pass}</code>`, {parse_mode: 'HTML'})
+          })
+          .catch(err => console.log(err))
+      }
+      ctx.scene.leave()
+
+    })
+
+    return createPassword
   }
 
 }

@@ -1,1 +1,1 @@
-POST http://127.0.0.1:8000/api/subscriber?tg_id=537532647&first_name=Роман&last_name=Эглиенс&username=egrom92&language_code=ru
+POST http://127.0.0.1:8000/api/subscriber/537532647/add?site=okidoki.ru

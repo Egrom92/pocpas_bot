@@ -8,12 +8,13 @@ const curScene = new SceneGenerator()
 const checkMasterPassword = curScene.checkMasterPasswordScene()
 const createMasterPassword = curScene.createMasterPassword()
 const enterMasterPassword = curScene.enterMasterPassword()
+const createPassword = curScene.createPassword()
 
 let authorized = false
 let greeted = false
 
 
-const stage = new Scenes.Stage([checkMasterPassword, createMasterPassword, enterMasterPassword])
+const stage = new Scenes.Stage([checkMasterPassword, createMasterPassword, enterMasterPassword, createPassword])
 
 bot.use(session());
 bot.use(stage.middleware());
@@ -43,9 +44,12 @@ bot.command('all', async ctx => {
 });
 
 
+bot.command('add', ctx => {
+  ctx.scene.enter('createPassword')
+})
 
 bot.launch()
-.then((res, req) => {
-  console.log('Started');
-})
-.catch(err => console.log(err))
+  .then((res, req) => {
+    console.log('Started');
+  })
+  .catch(err => console.log(err))
