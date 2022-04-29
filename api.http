@@ -1,1 +1,2 @@
-POST http://127.0.0.1:8000/api/subscriber/537532647/add?site=okidoki.ru
+http://127.0.0.1:8000/api/subscriber/537532647/getOne?site=okidoki.ru
+

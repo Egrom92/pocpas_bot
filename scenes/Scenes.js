@@ -79,7 +79,7 @@ module.exports = class SceneGenerator {
             tg_id: id, first_name, last_name, username, language_code, master_password: pass
           }
           console.log('Create pass link ---- ', getApiUrl('subscriber', query));
-          await axios.post(getApiUrl('subscriber'), query)
+          axios.post(getApiUrl('subscriber'), query)
             .then(async res => {
               if (res.data) {
                 console.log(res.data);
@@ -94,8 +94,8 @@ module.exports = class SceneGenerator {
             })
             .catch(err => console.log(err))
         } else {
-          ctx.reply('Пароль не может содержать кирилицу')
-          ctx.scene.reenter()
+          await ctx.reply('Пароль не может содержать кирилицу')
+          await ctx.scene.reenter()
         }
       }
     })
@@ -134,18 +134,52 @@ module.exports = class SceneGenerator {
     getAllPasswords.enter(ctx => {
       const userID = ctx.message.from.id
 
-      axios.post(getApiUrl(['subscriber', userID, 'all']))
+      axios.get(getApiUrl(['subscriber', userID, 'getAll']))
         .then(async res => {
-          let allPas = '';
-          await res.data.map(el => {
-            allPas += `${el.site_name}  _________  <code>${el.password}</code>\n\n`
-          })
-          console.log(allPas);
-          ctx.reply(allPas, {parse_mode: 'HTML'})
+
+          if (!res.data.length) {
+            await ctx.reply('У тебя сайтов пока нету \n\n' +
+              'Создать новый пароль - /add {название сайта}')
+          } else {
+            let allPas = '';
+            await res.data.map(el => {
+              allPas += `${el.site_name}  _________  <code>${el.password}</code>\n\n`
+            })
+            await ctx.reply(allPas, {parse_mode: 'HTML'})
+          }
+
+          ctx.scene.leave()
         })
+        .catch(err => console.log(err))
     })
 
     return getAllPasswords
   }
 
+  getOnePassword() {
+    const getOnePassword = new Scenes.BaseScene('getOnePassword')
+
+    getOnePassword.enter(async ctx => {
+      const userID = ctx.message.from.id
+      const site = ctx.message.text.replace('/get', '').trim()
+
+      getApiUrl(['subscriber', userID, 'getOne'], {site})
+
+      axios.get(getApiUrl(['subscriber', userID, 'getOne'], {site}))
+        .then(async res => {
+          if (res.data) {
+            let allPas = `${res.data.site_name}  _________  <code>${res.data.password}</code>\n\n`;
+            await ctx.reply(allPas, {parse_mode: 'HTML'})
+          } else {
+            await ctx.reply('Такого сайта нету, повти попытку')
+          }
+
+          ctx.scene.leave()
+
+        })
+        .catch(err => console.log(err))
+    })
+
+    return getOnePassword
+  }
 }
