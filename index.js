@@ -2,11 +2,12 @@ const {Telegraf, Scenes, session} = require('telegraf');
 require('dotenv').config()
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
+
 const SceneGenerator = require('./scenes/Scenes')
 const curScene = new SceneGenerator()
-const checkMasterPassword = curScene.GenCheckMasterPasswordScene()
-const createMasterPassword = curScene.GenCreateMasterPassword()
-const enterMasterPassword = curScene.GenEnterMasterPassword()
+const checkMasterPassword = curScene.checkMasterPasswordScene()
+const createMasterPassword = curScene.createMasterPassword()
+const enterMasterPassword = curScene.enterMasterPassword()
 
 let authorized = false
 let greeted = false
@@ -48,15 +49,3 @@ bot.launch()
   console.log('Started');
 })
 .catch(err => console.log(err))
-
-
-
-
-/*
-          await ctx.reply('У вас есть акаунт \n\n' +
-              'Создать новый пароль - /add {название сайта} \n\n' +
-              'Запросить пароль - /get {название сайта} \n\n' +
-              'Запроси список сайтов - /all \n\n' +
-              'Удалить сайт - /del {название сайта} \n\n' +
-              'Редактировать - /edit {название сайта}')
-* */

@@ -11,7 +11,6 @@ module.exports = function getApiUrl(path = '', query = {}) {
       address = address + '/' + path
     }
 
-  console.log(address);
 
   let i = 0;
   for (const [key, value] of Object.entries(query)) {
@@ -24,5 +23,6 @@ module.exports = function getApiUrl(path = '', query = {}) {
     i++;
   }
 
+  console.log(address);
   return address
 }
