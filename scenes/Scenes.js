@@ -135,28 +135,24 @@ module.exports = class SceneGenerator {
     getPassword.enter(async ctx => {
       const userID = ctx.message.from.id
       const site = ctx.message.text.replace('/get', '').trim()
+      const text = {
+        multiSite: 'У тебя сайтов пока нету \n\n' +
+          'Создать новый пароль - /add {название сайта}',
+        oneSite: 'Такого сайта нету.'
+      }
+
+      console.log(site);
 
       await axios.get(getApiUrl(['subscriber', userID, 'password'], {site}))
         .then(async res => {
-          //TODO сократить код
-          if (site === '*') {
-            if (!res.data.length) {
-              await ctx.reply('У тебя сайтов пока нету \n\n' +
-                'Создать новый пароль - /add {название сайта}')
-            } else {
-              let allPas = '';
-              await res.data.map(el => {
-                allPas += `${el.site_name}  _________  <code>${el.password}</code>\n\n`
-              })
-              await ctx.reply(allPas, {parse_mode: 'HTML'})
-            }
+          if (!res.data.length) {
+            await ctx.reply(site === '*' ? text.multiSite : text.oneSite)
           } else {
-            if (res.data) {
-              let password = `${res.data.site_name}  _________  <code>${res.data.password}</code>`;
-              await ctx.reply(password, {parse_mode: 'HTML'})
-            } else {
-              await ctx.reply('Такого сайта нету.')
-            }
+            let allPasswords = '';
+            await res.data.map(el => {
+              allPasswords += `${el.site_name}  _________  <code>${el.password}</code>\n\n`
+            })
+            await ctx.reply(allPasswords, {parse_mode: 'HTML'})
           }
         })
         .catch(err => console.log(err))
