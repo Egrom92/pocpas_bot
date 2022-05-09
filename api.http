@@ -1,2 +1,4 @@
-http://127.0.0.1:8000/api/subscriber/537532647/getOne?site=okidoki.ru
+DELETE http://127.0.0.1:8000/api/subscriber/537532647?site=okidoki.ru
+###
+POST http://127.0.0.1:8000/api/subscriber/537532647?site=okidoki.ru
 

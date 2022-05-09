@@ -67,7 +67,7 @@ module.exports = class SceneGenerator {
 
   createMasterPassword() {
     const createMasterPassword = new Scenes.BaseScene('createMasterPassword')
-    createMasterPassword.enter(ctx => ctx.reply('У вас нету акаунта.  Введите пожалуйста мастер пароль'))
+    createMasterPassword.enter(ctx => ctx.reply('У тебя нету акаунта.  Придумай и напиши мастер пароль'))
 
     createMasterPassword.on('text', async ctx => {
       const pass = ctx.message.text;
@@ -84,12 +84,13 @@ module.exports = class SceneGenerator {
               if (res.data) {
                 console.log(res.data);
                 await ctx.reply('Акаунт создан \n\n' +
-                  'Создать новый пароль - /add {название сайта} \n\n' +
-                  'Запросить пароль - /get {название сайта} \n\n' +
-                  'Запроси список сайтов - /all \n\n' +
-                  'Удалить сайт - /del {название сайта} \n\n' +
-                  'Редактировать - /edit {название сайта}')
-                ctx.scene.leave()
+                  'Создать новый пароль -> \n/add {название сайта} \n\n' +
+                  'Запросить пароль -> \n/get {название сайта} \n\n' +
+                  'Запроси список сайтов - \n/all \n\n' +
+                  'Удалить сайт -> \n/del {название сайта} \n\n' +
+                  'Редактировать сайт -> \n/edit {название старого сайта} {название нового сайта} \n\n' +
+                  'Редактировать пароль -> \n/edit {название сайта сайта}')
+                await ctx.scene.leave()
               }
             })
             .catch(err => console.log(err))
@@ -112,7 +113,7 @@ module.exports = class SceneGenerator {
         await ctx.reply('Вы забыли написать название сайта \n \n' +
           'Создать новый пароль - /add {название сайта}')
       } else {
-        axios.post(getApiUrl(['subscriber', userID, 'add']), {site})
+        axios.post(getApiUrl(['subscriber', userID, 'password']), {site})
           .then(res => {
             if (res.data.status) {
               ctx.reply(`Твой сайт ${site} и пароль <code>${res.data.pass}</code>`, {parse_mode: 'HTML'})
@@ -128,58 +129,97 @@ module.exports = class SceneGenerator {
     return createPassword
   }
 
-  getAllPasswords() {
-    const getAllPasswords = new Scenes.BaseScene('getAllPasswords')
+  getPassword() {
+    const getPassword = new Scenes.BaseScene('getPassword')
 
-    getAllPasswords.enter(ctx => {
-      const userID = ctx.message.from.id
-
-      axios.get(getApiUrl(['subscriber', userID, 'getAll']))
-        .then(async res => {
-
-          if (!res.data.length) {
-            await ctx.reply('У тебя сайтов пока нету \n\n' +
-              'Создать новый пароль - /add {название сайта}')
-          } else {
-            let allPas = '';
-            await res.data.map(el => {
-              allPas += `${el.site_name}  _________  <code>${el.password}</code>\n\n`
-            })
-            await ctx.reply(allPas, {parse_mode: 'HTML'})
-          }
-
-          ctx.scene.leave()
-        })
-        .catch(err => console.log(err))
-    })
-
-    return getAllPasswords
-  }
-
-  getOnePassword() {
-    const getOnePassword = new Scenes.BaseScene('getOnePassword')
-
-    getOnePassword.enter(async ctx => {
+    getPassword.enter(async ctx => {
       const userID = ctx.message.from.id
       const site = ctx.message.text.replace('/get', '').trim()
 
-      getApiUrl(['subscriber', userID, 'getOne'], {site})
-
-      axios.get(getApiUrl(['subscriber', userID, 'getOne'], {site}))
+      await axios.get(getApiUrl(['subscriber', userID, 'password'], {site}))
         .then(async res => {
-          if (res.data) {
-            let allPas = `${res.data.site_name}  _________  <code>${res.data.password}</code>\n\n`;
-            await ctx.reply(allPas, {parse_mode: 'HTML'})
+          if (site === '*') {
+            if (!res.data.length) {
+              await ctx.reply('У тебя сайтов пока нету \n\n' +
+                'Создать новый пароль - /add {название сайта}')
+            } else {
+              let allPas = '';
+              await res.data.map(el => {
+                allPas += `${el.site_name}  _________  <code>${el.password}</code>\n\n`
+              })
+              await ctx.reply(allPas, {parse_mode: 'HTML'})
+            }
           } else {
-            await ctx.reply('Такого сайта нету, повти попытку')
+            if (res.data) {
+              let password = `${res.data.site_name}  _________  <code>${res.data.password}</code>`;
+              await ctx.reply(password, {parse_mode: 'HTML'})
+            } else {
+              await ctx.reply('Такого сайта нету.')
+            }
           }
-
-          ctx.scene.leave()
-
         })
         .catch(err => console.log(err))
+
+      await console.log(site);
+
+      await ctx.scene.leave()
     })
 
-    return getOnePassword
+    return getPassword;
+  }
+
+  deletePassword() {
+    const deletePassword = new Scenes.BaseScene('deletePassword')
+
+    deletePassword.enter(async ctx => {
+      const userID = ctx.message.from.id
+      const site = ctx.message.text.replace('/del', '').trim()
+
+      await axios.delete(getApiUrl(['subscriber', userID, 'password'], {site}))
+        .then(async res => {
+          if (res.data) {
+            await ctx.reply(`Ваш сайт ${site} удалён`)
+          } else {
+            await ctx.reply('Такого сайта нету')
+          }
+        })
+        .catch(err => console.log(err))
+      ctx.scene.leave();
+    })
+    return deletePassword;
+  }
+
+  editPasswordOrSite() {
+    const editPasswordOrSite = new Scenes.BaseScene('editPasswordOrSite')
+
+    editPasswordOrSite.enter(async ctx => {
+      const userID = ctx.message.from.id
+      const site = ctx.message.text.replace('/edit', '').trim().split(' ')
+
+      const EDIT_SITE = 2;
+      const EDIT_PASSWORD = 1;
+
+      if (site.length === EDIT_PASSWORD) {
+        await axios.patch(getApiUrl(['subscriber', userID, 'password'], {site}))
+          .then(async res => {
+            if (res.data) {
+              let password = `${res.data.site_name}  _________  <code>${res.data.password}</code>`;
+              await ctx.reply(password, {parse_mode: 'HTML'})
+            } else {
+              await ctx.reply('Такого сайта нету, повти попытку')
+            }
+          })
+          .catch(err => console.log(err))
+      } else if (site.length === EDIT_SITE) {
+
+      } else {
+        await ctx.reply('Ты ввёл не верную запись \n\n' +
+          'Редактировать сайт -> \n/edit {название старого сайта} {название нового сайта} \n\n' +
+          'Редактировать пароль -> \n/edit {название сайта сайта}')
+      }
+      ctx.scene.leave();
+
+    })
+    return editPasswordOrSite;
   }
 }
