@@ -138,6 +138,7 @@ module.exports = class SceneGenerator {
 
       await axios.get(getApiUrl(['subscriber', userID, 'password'], {site}))
         .then(async res => {
+          //TODO сократить код
           if (site === '*') {
             if (!res.data.length) {
               await ctx.reply('У тебя сайтов пока нету \n\n' +
@@ -203,7 +204,7 @@ module.exports = class SceneGenerator {
         await axios.patch(getApiUrl(['subscriber', userID, 'password'], {site}))
           .then(async res => {
             if (res.data) {
-              let password = `${res.data.site_name}  _________  <code>${res.data.password}</code>`;
+              let password = `${site}  _________  <code>${res.data}</code>`;
               await ctx.reply(password, {parse_mode: 'HTML'})
             } else {
               await ctx.reply('Такого сайта нету, повти попытку')
@@ -211,7 +212,16 @@ module.exports = class SceneGenerator {
           })
           .catch(err => console.log(err))
       } else if (site.length === EDIT_SITE) {
-
+        await axios.patch(getApiUrl(['subscriber', userID, 'password'], {'site': site[0], 'new': site[0]}))
+          .then(async res => {
+            if (res.data) {
+              let password = `${site}  _________  <code>${res.data}</code>`;
+              await ctx.reply(password, {parse_mode: 'HTML'})
+            } else {
+              await ctx.reply('Такого сайта нету, повти попытку')
+            }
+          })
+          .catch(err => console.log(err))
       } else {
         await ctx.reply('Ты ввёл не верную запись \n\n' +
           'Редактировать сайт -> \n/edit {название старого сайта} {название нового сайта} \n\n' +
