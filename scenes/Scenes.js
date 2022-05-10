@@ -193,8 +193,8 @@ module.exports = class SceneGenerator {
       const userID = ctx.message.from.id
       const site = ctx.message.text.replace('/edit', '').trim().split(' ')
 
-      const EDIT_SITE = 2;
       const EDIT_PASSWORD = 1;
+      const EDIT_SITE = 2;
 
       if (site.length === EDIT_PASSWORD) {
         await axios.patch(getApiUrl(['subscriber', userID, 'password'], {site}))
@@ -208,10 +208,10 @@ module.exports = class SceneGenerator {
           })
           .catch(err => console.log(err))
       } else if (site.length === EDIT_SITE) {
-        await axios.patch(getApiUrl(['subscriber', userID, 'password'], {'site': site[0], 'new': site[0]}))
+        await axios.patch(getApiUrl(['subscriber', userID, 'password'], {'site': site[0], 'new': site[1]}))
           .then(async res => {
             if (res.data) {
-              let password = `${site}  _________  <code>${res.data}</code>`;
+              let password = `${site[0]} поменял на <code>${site[1]}</code>`;
               await ctx.reply(password, {parse_mode: 'HTML'})
             } else {
               await ctx.reply('Такого сайта нету, повти попытку')
