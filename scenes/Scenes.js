@@ -29,7 +29,7 @@ module.exports = class SceneGenerator {
   enterMasterPassword() {
     const enterMasterPassword = new Scenes.BaseScene('enterMasterPassword')
 
-    enterMasterPassword.enter(async ctx => ctx.reply('Введите  мастер пароль'))
+    enterMasterPassword.enter(async ctx => ctx.reply(text.enter_master_password))
 
     enterMasterPassword.on('text', async ctx => {
       const userID = ctx.message.from.id
@@ -40,20 +40,20 @@ module.exports = class SceneGenerator {
           .then(async res => {
             if (res.data) {
               ctx.session.authorized = true;
-              await ctx.reply('Вы ввели верный пароль \n\n' + text.instruction)
+              await ctx.reply('Вы ввели верный пароль \n\n' + text.instruction.all)
 
               await ctx.scene.leave();
             } else {
-              await ctx.reply('Пароль не верный. Повторите попытку')
+              await ctx.reply(text.incorrect_password)
               await ctx.scene.reenter()
             }
           })
           .catch(async err => {
             await console.log(err)
-            await ctx.reply('Пароль не верный. Повторите попытку')
+            await ctx.reply(text.incorrect_password)
           })
       } else {
-        ctx.reply('Пароль не может содержать кирилицу')
+        ctx.reply(text.no_cyrillic)
         await ctx.scene.reenter()
       }
 
@@ -65,7 +65,7 @@ module.exports = class SceneGenerator {
 
   createMasterPassword() {
     const createMasterPassword = new Scenes.BaseScene('createMasterPassword')
-    createMasterPassword.enter(ctx => ctx.reply('У тебя нету акаунта.  Придумай и напиши мастер пароль'))
+    createMasterPassword.enter(ctx => ctx.reply(text.create_master_password))
 
     createMasterPassword.on('text', async ctx => {
       const pass = ctx.message.text;
@@ -79,19 +79,13 @@ module.exports = class SceneGenerator {
           axios.post(getApiUrl('subscriber'), query)
             .then(async res => {
               if (res.data) {
-                await ctx.reply('Акаунт создан \n\n' +
-                  'Создать новый пароль -> \n/add {название сайта} \n\n' +
-                  'Запросить пароль -> \n/get {название сайта} \n\n' +
-                  'Запроси список сайтов - \n/all \n\n' +
-                  'Удалить сайт -> \n/del {название сайта} \n\n' +
-                  'Редактировать сайт -> \n/edit {название старого сайта} {название нового сайта} \n\n' +
-                  'Редактировать пароль -> \n/edit {название сайта сайта}')
+                await ctx.reply('Акаунт создан \n\n' + text.instruction.all)
                 await ctx.scene.leave()
               }
             })
             .catch(err => console.log(err))
         } else {
-          await ctx.reply('Пароль не может содержать кирилицу')
+          await ctx.reply(text.no_cyrillic)
           await ctx.scene.reenter()
         }
       }
@@ -106,8 +100,8 @@ module.exports = class SceneGenerator {
       const site = ctx.message.text.replace('/add', '').trim()
 
       if (!site.length) {
-        await ctx.reply('Вы забыли написать название сайта \n \n' +
-          'Создать новый пароль - /add {название сайта}')
+        await ctx.reply('Ты забыл написать название сайта \n \n' +
+          text.instruction.add)
       } else {
         axios.post(getApiUrl(['subscriber', userID, 'password']), {site})
           .then(res => {
@@ -131,16 +125,16 @@ module.exports = class SceneGenerator {
     getPassword.enter(async ctx => {
       const userID = ctx.message.from.id
       const site = ctx.message.text.replace('/get', '').trim()
-      const text = {
+      const info_text = {
         multiSite: 'У тебя сайтов пока нету \n\n' +
-          'Создать новый пароль - /add {название сайта}',
-        oneSite: 'Такого сайта нету.'
+          text.instruction.add,
+        oneSite: text.wrong_site
       }
 
       await axios.get(getApiUrl(['subscriber', userID, 'password'], {site}))
         .then(async res => {
           if (!res.data.length) {
-            await ctx.reply(site === '*' ? text.multiSite : text.oneSite)
+            await ctx.reply(site === '*' ? info_text.multiSite : info_text.oneSite)
           } else {
             let allPasswords = '';
             await res.data.map(el => {
@@ -168,7 +162,7 @@ module.exports = class SceneGenerator {
           if (res.data) {
             await ctx.reply(`Ваш сайт ${site} удалён`)
           } else {
-            await ctx.reply('Такого сайта нету')
+            await ctx.reply(text.wrong_site)
           }
         })
         .catch(err => console.log(err))
@@ -194,7 +188,7 @@ module.exports = class SceneGenerator {
               let password = `${site}  _________  <code>${res.data}</code>`;
               await ctx.reply(password, {parse_mode: 'HTML'})
             } else {
-              await ctx.reply('Такого сайта нету, повти попытку')
+              await ctx.reply(text.wrong_site)
             }
           })
           .catch(err => console.log(err))
@@ -205,14 +199,12 @@ module.exports = class SceneGenerator {
               let password = `${site[0]} поменял на <code>${site[1]}</code>`;
               await ctx.reply(password, {parse_mode: 'HTML'})
             } else {
-              await ctx.reply('Такого сайта нету, повти попытку')
+              await ctx.reply(text.wrong_site)
             }
           })
           .catch(err => console.log(err))
       } else {
-        await ctx.reply('Ты ввёл не верную запись \n\n' +
-          'Редактировать сайт -> \n/edit {название старого сайта} {название нового сайта} \n\n' +
-          'Редактировать пароль -> \n/edit {название сайта сайта}')
+        await ctx.reply('Ты ввёл не верную запись \n\n' + text.instruction.edit)
       }
       ctx.scene.leave();
 
