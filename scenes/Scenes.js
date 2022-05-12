@@ -1,5 +1,5 @@
 const {Scenes} = require('telegraf')
-
+const text = require('../text.json')
 const axios = require('axios');
 const getApiUrl = require("../helpers/getApiUrl");
 const isKyr = require("../helpers/isKyr");
@@ -11,7 +11,6 @@ module.exports = class SceneGenerator {
 
     checkMasterPassword.enter(async (ctx) => {
       const userID = ctx.message.from.id
-
       await axios.get(getApiUrl(['subscriber', userID]))
         .then(async res => {
           if (res.data) {
@@ -37,26 +36,25 @@ module.exports = class SceneGenerator {
       const pass = ctx.message.text
 
       if (!isKyr(pass)) {
-        await axios.get(getApiUrl(['subscriber', userID, ctx.message.text]))
+        await axios.get(getApiUrl(['subscriber', userID, 'master-password', ctx.message.text]))
           .then(async res => {
             if (res.data) {
-              ctx.reply('Вы ввели верный пароль \n\n' +
-                'Создать новый пароль - /add {название сайта} \n\n' +
-                'Запросить пароль - /get {название сайта} \n\n' +
-                'Запроси список сайтов - /all \n\n' +
-                'Удалить сайт - /del {название сайта} \n\n' +
-                'Редактировать - /edit {название сайта}')
+              ctx.session.authorized = true;
+              await ctx.reply('Вы ввели верный пароль \n\n' + text.instruction)
 
-              ctx.scene.leave();
+              await ctx.scene.leave();
             } else {
-              await ctx.reply('У вас не правельный пароль. Повторите попытку')
+              await ctx.reply('Пароль не верный. Повторите попытку')
               await ctx.scene.reenter()
             }
           })
-          .catch(err => console.log(err))
+          .catch(async err => {
+            await console.log(err)
+            await ctx.reply('Пароль не верный. Повторите попытку')
+          })
       } else {
         ctx.reply('Пароль не может содержать кирилицу')
-        ctx.scene.reenter()
+        await ctx.scene.reenter()
       }
 
 
@@ -78,11 +76,9 @@ module.exports = class SceneGenerator {
           const query = {
             tg_id: id, first_name, last_name, username, language_code, master_password: pass
           }
-          console.log('Create pass link ---- ', getApiUrl('subscriber', query));
           axios.post(getApiUrl('subscriber'), query)
             .then(async res => {
               if (res.data) {
-                console.log(res.data);
                 await ctx.reply('Акаунт создан \n\n' +
                   'Создать новый пароль -> \n/add {название сайта} \n\n' +
                   'Запросить пароль -> \n/get {название сайта} \n\n' +
@@ -141,8 +137,6 @@ module.exports = class SceneGenerator {
         oneSite: 'Такого сайта нету.'
       }
 
-      console.log(site);
-
       await axios.get(getApiUrl(['subscriber', userID, 'password'], {site}))
         .then(async res => {
           if (!res.data.length) {
@@ -156,9 +150,6 @@ module.exports = class SceneGenerator {
           }
         })
         .catch(err => console.log(err))
-
-      await console.log(site);
-
       await ctx.scene.leave()
     })
 
