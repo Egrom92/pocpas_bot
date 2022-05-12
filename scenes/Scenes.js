@@ -3,6 +3,7 @@ const text = require('../text.json')
 const axios = require('axios');
 const getApiUrl = require("../helpers/getApiUrl");
 const isKyr = require("../helpers/isKyr");
+const replyAndDestroy = require('../helpers/replyAndDestroy')
 
 
 module.exports = class SceneGenerator {
@@ -39,6 +40,7 @@ module.exports = class SceneGenerator {
         await axios.get(getApiUrl(['subscriber', userID, 'master-password', ctx.message.text]))
           .then(async res => {
             if (res.data) {
+              await ctx.deleteMessage()
               ctx.session.authorized = true;
               await ctx.reply('Вы ввели верный пароль \n\n' + text.instruction.all)
 
@@ -106,9 +108,9 @@ module.exports = class SceneGenerator {
         axios.post(getApiUrl(['subscriber', userID, 'password']), {site})
           .then(res => {
             if (res.data.status) {
-              ctx.reply(`Твой сайт ${site} и пароль <code>${res.data.pass}</code>`, {parse_mode: 'HTML'})
+              replyAndDestroy(ctx, [`Твой сайт ${site} и пароль <code>${res.data.pass}</code>`, 'HTML'])
             } else
-              ctx.reply(`${site} уже был есть и пароль <code>${res.data.pass}</code>`, {parse_mode: 'HTML'})
+              replyAndDestroy(ctx, [`${site} уже был есть и пароль <code>${res.data.pass}</code>`, 'HTML'])
           })
           .catch(err => console.log(err))
       }
@@ -134,13 +136,13 @@ module.exports = class SceneGenerator {
       await axios.get(getApiUrl(['subscriber', userID, 'password'], {site}))
         .then(async res => {
           if (!res.data.length) {
-            await ctx.reply(site === '*' ? info_text.multiSite : info_text.oneSite)
+            await replyAndDestroy(ctx, site === '*' ? info_text.multiSite : info_text.oneSite)
           } else {
             let allPasswords = '';
             await res.data.map(el => {
               allPasswords += `${el.site_name}  _________  <code>${el.password}</code>\n\n`
             })
-            await ctx.reply(allPasswords, {parse_mode: 'HTML'})
+            await replyAndDestroy(ctx, [allPasswords, 'HTML'])
           }
         })
         .catch(err => console.log(err))
