@@ -1,9 +1,10 @@
-const {Scenes} = require('telegraf')
+const {Scenes, Markup} = require('telegraf')
 const text = require('../text.json')
 const axios = require('axios');
 const getApiUrl = require("../helpers/getApiUrl");
 const isKyr = require("../helpers/isKyr");
 const replyAndDestroy = require('../helpers/replyAndDestroy')
+const {exit_kb, default_kb} = require('../keyboards')
 
 
 module.exports = class SceneGenerator {
@@ -42,7 +43,7 @@ module.exports = class SceneGenerator {
             if (res.data) {
               await ctx.deleteMessage()
               ctx.session.authorized = true;
-              await ctx.reply('Вы ввели верный пароль \n\n' + text.instruction.all)
+              await ctx.reply('Вы ввели верный пароль', default_kb)
 
               await ctx.scene.leave();
             } else {
@@ -97,26 +98,27 @@ module.exports = class SceneGenerator {
 
   createPassword() {
     const createPassword = new Scenes.BaseScene('createPassword')
-    createPassword.enter(async ctx => {
-      const userID = ctx.message.from.id
-      const site = ctx.message.text.replace('/add', '').trim()
-
-      if (!site.length) {
-        await ctx.reply('Ты забыл написать название сайта \n \n' +
-          text.instruction.add)
-      } else {
-        axios.post(getApiUrl(['subscriber', userID, 'password']), {site})
-          .then(res => {
-            if (res.data.status) {
-              replyAndDestroy(ctx, [`Твой сайт ${site} и пароль <code>${res.data.pass}</code>`, 'HTML'])
-            } else
-              replyAndDestroy(ctx, [`${site} уже был есть и пароль <code>${res.data.pass}</code>`, 'HTML'])
-          })
-          .catch(err => console.log(err))
-      }
+    createPassword.enter(ctx => ctx.reply('Введите название сайта', exit_kb))
+    createPassword.hears('Отмена', ctx => {
+      ctx.scene.text = 'Что делаем дальше?'
       ctx.scene.leave()
-
     })
+    createPassword.on('text', async ctx => {
+      const userID = ctx.message.from.id
+      const site = ctx.message.text
+
+      await axios.post(getApiUrl(['subscriber', userID, 'password']), {site})
+        .then(res => {
+          if (res.data.status) {
+            ctx.scene.text = `Твой сайт ${site} и пароль <code>${res.data.pass}</code>`;
+          } else
+            ctx.scene.text = `${site} уже был, пароль <code>${res.data.pass}</code>`;
+        })
+        .catch(err => console.log(err))
+
+      await ctx.scene.leave();
+    })
+    createPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, default_kb))
 
     return createPassword
   }

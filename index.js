@@ -1,4 +1,4 @@
-const {Telegraf, Scenes, session} = require('telegraf');
+const {Telegraf, Scenes, session, Markup} = require('telegraf');
 require('dotenv').config()
 const text = require('./text.json')
 const bot = new Telegraf(process.env.BOT_TOKEN)
@@ -43,16 +43,16 @@ bot.start(async ctx => {
   await ctx.scene.enter('checkMasterPassword')
 })
 
-bot.command('get', async ctx => {
+bot.hears('Добавить пароль', async ctx => {
+  await ctx.scene.enter(isAuthorized(ctx, 'createPassword'))
+})
+
+bot.hears('Запросить пароль', async ctx => {
   await ctx.scene.enter(isAuthorized(ctx, 'getPassword'))
 });
 
 bot.command('del', async ctx => {
   await ctx.scene.enter(isAuthorized(ctx, 'deletePassword'))
-})
-
-bot.command('add', async ctx => {
-  await ctx.scene.enter(isAuthorized(ctx, 'createPassword'))
 })
 
 bot.command('edit', async ctx => {
