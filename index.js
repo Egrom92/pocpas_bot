@@ -6,7 +6,7 @@ const bot = new Telegraf(process.env.BOT_TOKEN)
 const SceneGenerator = require('./scenes/Scenes')
 const {exit_kb} = require("./keyboards");
 const curScene = new SceneGenerator()
-const checkMasterPassword = curScene.checkMasterPasswordScene()
+const checkMasterPassword = curScene.checkMasterPassword()
 const createMasterPassword = curScene.createMasterPassword()
 const enterMasterPassword = curScene.enterMasterPassword()
 const createPassword = curScene.createPassword()
@@ -38,8 +38,7 @@ bot.use(session());
 bot.use(stage.middleware());
 
 bot.help(async ctx => {
-  ctx.session.authorized ? ctx.reply(text.instruction) : ctx.reply(text.help)
-  await console.log(ctx.session);
+  ctx.session.authorized ? ctx.reply(text.help) : ctx.reply(text.help)
 })
 
 bot.start(async ctx => {
@@ -47,6 +46,7 @@ bot.start(async ctx => {
 })
 
 bot.hears('Добавить пароль', async ctx => {
+  await ctx.reply('Введите название сайта', exit_kb)
   await ctx.scene.enter(isAuthorized(ctx, 'createPassword'))
 })
 
