@@ -4,7 +4,9 @@ const axios = require('axios');
 const getApiUrl = require("../helpers/getApiUrl");
 const isKyr = require("../helpers/isKyr");
 const replyAndDestroy = require('../helpers/replyAndDestroy')
-const {exit_kb, default_kb} = require('../keyboards')
+const noSiteAndReenter = require('../helpers/noSiteAndReenter')
+const leaveScene = require('../helpers/leaveScene')
+const {exit_kb, default_kb, remove_kb} = require('../keyboards')
 
 
 module.exports = class SceneGenerator {
@@ -16,7 +18,8 @@ module.exports = class SceneGenerator {
       await axios.get(getApiUrl(['subscriber', userID]))
         .then(async res => {
           if (res.data) {
-            ctx.scene.enter('enterMasterPassword')
+            await ctx.reply(text.enter_master_password, remove_kb)
+            await ctx.scene.enter('enterMasterPassword')
             await ctx.scene.leave()
           } else {
             ctx.scene.enter('createMasterPassword')
@@ -30,8 +33,6 @@ module.exports = class SceneGenerator {
 
   enterMasterPassword() {
     const enterMasterPassword = new Scenes.BaseScene('enterMasterPassword')
-
-    enterMasterPassword.enter(async ctx => ctx.reply(text.enter_master_password))
 
     enterMasterPassword.on('text', async ctx => {
       const userID = ctx.message.from.id
@@ -99,10 +100,9 @@ module.exports = class SceneGenerator {
   createPassword() {
     const createPassword = new Scenes.BaseScene('createPassword')
     createPassword.enter(ctx => ctx.reply('Введите название сайта', exit_kb))
-    createPassword.hears('Отмена', ctx => {
-      ctx.scene.text = 'Что делаем дальше?'
-      ctx.scene.leave()
-    })
+
+    leaveScene(createPassword);
+
     createPassword.on('text', async ctx => {
       const userID = ctx.message.from.id
       const site = ctx.message.text
@@ -115,10 +115,10 @@ module.exports = class SceneGenerator {
             ctx.scene.text = `${site} уже был, пароль <code>${res.data.pass}</code>`;
         })
         .catch(err => console.log(err))
-
+      ctx.scene.kb = default_kb
       await ctx.scene.leave();
     })
-    createPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, default_kb))
+    createPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
 
     return createPassword
   }
@@ -126,10 +126,7 @@ module.exports = class SceneGenerator {
   getPassword() {
     const getPassword = new Scenes.BaseScene('getPassword')
 
-    getPassword.hears('Отмена', ctx => {
-      ctx.scene.text = 'Что делаем дальше?'
-      ctx.scene.leave()
-    })
+    leaveScene(getPassword);
 
     getPassword.on('text', async ctx => {
       const userID = ctx.message.from.id
@@ -138,9 +135,7 @@ module.exports = class SceneGenerator {
       await axios.get(getApiUrl(['subscriber', userID, 'password'], {site}))
         .then(async res => {
           if (!res.data) {
-            ctx.scene.text = text.wrong_site
-            ctx.scene.kb = exit_kb
-            await ctx.scene.reenter();
+            await noSiteAndReenter(ctx)
           } else {
             ctx.scene.text = `${res.data.site_name}  _________  <code>${res.data.password}</code>`
             ctx.scene.kb = default_kb
@@ -157,19 +152,14 @@ module.exports = class SceneGenerator {
   getAllPasswords() {
     const getAllPasswords = new Scenes.BaseScene('getAllPasswords');
 
-    getAllPasswords.hears('Отмена', ctx => {
-      ctx.scene.text = 'Что делаем дальше?'
-      ctx.scene.leave()
-    })
+    leaveScene(getAllPasswords);
 
     getAllPasswords.enter(async ctx => {
       const userID = ctx.message.from.id
       await axios.get(getApiUrl(['subscriber', userID, 'all-passwords']))
         .then(async res => {
           if (!res.data) {
-            ctx.scene.text = text.no_sites
-            ctx.scene.kb = exit_kb
-            await ctx.scene.reenter();
+            await noSiteAndReenter(ctx)
           } else {
             ctx.scene.text = '';
             await res.data.map(el => {
@@ -187,9 +177,38 @@ module.exports = class SceneGenerator {
     return getAllPasswords;
   }
 
+  editPassword() {
+    const editPassword = new Scenes.BaseScene('editPassword')
+
+    leaveScene(editPassword);
+
+    editPassword.on('text', async ctx => {
+      const userID = ctx.message.from.id
+      const site = ctx.message.text
+
+      await axios.patch(getApiUrl(['subscriber', userID, 'password'], {site}))
+        .then(async res => {
+          if (res.data) {
+            ctx.scene.text = `${site}  _________  <code>${res.data}</code>\n\n`
+            ctx.scene.kb = default_kb
+            await ctx.scene.leave();
+          } else {
+            await noSiteAndReenter(ctx)
+          }
+        })
+        .catch(err => console.log(err))
+    })
+
+    editPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+
+    return editPassword;
+  }
+
 
   deletePassword() {
     const deletePassword = new Scenes.BaseScene('deletePassword')
+
+    leaveScene(deletePassword);
 
     deletePassword.enter(async ctx => {
       const userID = ctx.message.from.id
@@ -209,44 +228,4 @@ module.exports = class SceneGenerator {
     return deletePassword;
   }
 
-  editPasswordOrSite() {
-    const editPasswordOrSite = new Scenes.BaseScene('editPasswordOrSite')
-
-    editPasswordOrSite.enter(async ctx => {
-      const userID = ctx.message.from.id
-      const site = ctx.message.text.replace('/edit', '').trim().split(' ')
-
-      const EDIT_PASSWORD = 1;
-      const EDIT_SITE = 2;
-
-      if (site.length === EDIT_PASSWORD) {
-        await axios.patch(getApiUrl(['subscriber', userID, 'password'], {site}))
-          .then(async res => {
-            if (res.data) {
-              let password = `${site}  _________  <code>${res.data}</code>`;
-              await ctx.reply(password, {parse_mode: 'HTML'})
-            } else {
-              await ctx.reply(text.wrong_site)
-            }
-          })
-          .catch(err => console.log(err))
-      } else if (site.length === EDIT_SITE) {
-        await axios.patch(getApiUrl(['subscriber', userID, 'password'], {'site': site[0], 'new': site[1]}))
-          .then(async res => {
-            if (res.data) {
-              let password = `${site[0]} поменял на <code>${site[1]}</code>`;
-              await ctx.reply(password, {parse_mode: 'HTML'})
-            } else {
-              await ctx.reply(text.wrong_site)
-            }
-          })
-          .catch(err => console.log(err))
-      } else {
-        await ctx.reply('Ты ввёл не верную запись \n\n' + text.instruction.edit)
-      }
-      ctx.scene.leave();
-
-    })
-    return editPasswordOrSite;
-  }
 }

@@ -12,7 +12,7 @@ const enterMasterPassword = curScene.enterMasterPassword()
 const createPassword = curScene.createPassword()
 const getPassword = curScene.getPassword()
 const getAllPasswords = curScene.getAllPasswords()
-const editPasswordOrSite = curScene.editPasswordOrSite()
+const editPassword = curScene.editPassword()
 const deletePassword = curScene.deletePassword()
 
 const isAuthorized = (ctx, scene = 'checkMasterPassword') => {
@@ -30,7 +30,7 @@ const stage = new Scenes.Stage([
   createPassword,
   getPassword,
   getAllPasswords,
-  editPasswordOrSite,
+  editPassword,
   deletePassword
 ])
 
@@ -60,12 +60,14 @@ bot.hears('Посмотреть все пароли', async ctx => {
   await ctx.scene.enter(isAuthorized(ctx, 'getAllPasswords'))
 });
 
-bot.command('del', async ctx => {
+bot.hears('Удалить пароль', async ctx => {
+  await ctx.reply('Идёт запрос на сервер', exit_kb)
   await ctx.scene.enter(isAuthorized(ctx, 'deletePassword'))
 })
 
-bot.command('edit', async ctx => {
-  await ctx.scene.enter(isAuthorized(ctx, 'editPasswordOrSite'))
+bot.hears('Редактировать пароль', async ctx => {
+  await ctx.reply('Введите название сайта', exit_kb)
+  await ctx.scene.enter(isAuthorized(ctx, 'editPassword'))
 })
 
 bot.launch()
