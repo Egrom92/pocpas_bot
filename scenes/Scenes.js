@@ -210,21 +210,26 @@ module.exports = class SceneGenerator {
 
     leaveScene(deletePassword);
 
-    deletePassword.enter(async ctx => {
+    deletePassword.on('text', async ctx => {
       const userID = ctx.message.from.id
-      const site = ctx.message.text.replace('/del', '').trim()
+      const site = ctx.message.text
 
       await axios.delete(getApiUrl(['subscriber', userID, 'password'], {site}))
         .then(async res => {
           if (res.data) {
-            await ctx.reply(`Ваш сайт ${site} удалён`)
+            ctx.scene.text = `Ваш сайт ${site} удалён`
+            ctx.scene.kb = default_kb
+            await ctx.scene.leave();
           } else {
-            await ctx.reply(text.wrong_site)
+            await noSiteAndReenter(ctx)
           }
         })
         .catch(err => console.log(err))
-      ctx.scene.leave();
+      await ctx.scene.leave();
     })
+
+    deletePassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+
     return deletePassword;
   }
 

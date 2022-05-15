@@ -61,7 +61,7 @@ bot.hears('Посмотреть все пароли', async ctx => {
 });
 
 bot.hears('Удалить пароль', async ctx => {
-  await ctx.reply('Идёт запрос на сервер', exit_kb)
+  await ctx.reply('Введите название сайта', exit_kb)
   await ctx.scene.enter(isAuthorized(ctx, 'deletePassword'))
 })
 

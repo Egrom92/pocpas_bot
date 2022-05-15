@@ -1,2 +1,2 @@
 up:
-	nodemon index.ts
+	nodemon index.js
