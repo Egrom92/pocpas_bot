@@ -4,12 +4,14 @@ const text = require('./text.json')
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
 const SceneGenerator = require('./scenes/Scenes')
+const {exit_kb} = require("./keyboards");
 const curScene = new SceneGenerator()
 const checkMasterPassword = curScene.checkMasterPasswordScene()
 const createMasterPassword = curScene.createMasterPassword()
 const enterMasterPassword = curScene.enterMasterPassword()
 const createPassword = curScene.createPassword()
 const getPassword = curScene.getPassword()
+const getAllPasswords = curScene.getAllPasswords()
 const editPasswordOrSite = curScene.editPasswordOrSite()
 const deletePassword = curScene.deletePassword()
 
@@ -27,6 +29,7 @@ const stage = new Scenes.Stage([
   enterMasterPassword,
   createPassword,
   getPassword,
+  getAllPasswords,
   editPasswordOrSite,
   deletePassword
 ])
@@ -48,7 +51,13 @@ bot.hears('Добавить пароль', async ctx => {
 })
 
 bot.hears('Запросить пароль', async ctx => {
+  await ctx.reply('Введите название сайта', exit_kb)
   await ctx.scene.enter(isAuthorized(ctx, 'getPassword'))
+});
+
+bot.hears('Посмотреть все пароли', async ctx => {
+  await ctx.reply('Идёт запрос на сервер', exit_kb)
+  await ctx.scene.enter(isAuthorized(ctx, 'getAllPasswords'))
 });
 
 bot.command('del', async ctx => {

@@ -1,4 +1,4 @@
-const {Scenes, Markup} = require('telegraf')
+const {Scenes} = require('telegraf')
 const text = require('../text.json')
 const axios = require('axios');
 const getApiUrl = require("../helpers/getApiUrl");
@@ -126,33 +126,67 @@ module.exports = class SceneGenerator {
   getPassword() {
     const getPassword = new Scenes.BaseScene('getPassword')
 
-    getPassword.enter(async ctx => {
+    getPassword.hears('Отмена', ctx => {
+      ctx.scene.text = 'Что делаем дальше?'
+      ctx.scene.leave()
+    })
+
+    getPassword.on('text', async ctx => {
       const userID = ctx.message.from.id
-      const site = ctx.message.text.replace('/get', '').trim()
-      const info_text = {
-        multiSite: 'У тебя сайтов пока нету \n\n' +
-          text.instruction.add,
-        oneSite: text.wrong_site
-      }
+      const site = ctx.message.text
 
       await axios.get(getApiUrl(['subscriber', userID, 'password'], {site}))
         .then(async res => {
-          if (!res.data.length) {
-            await replyAndDestroy(ctx, site === '*' ? info_text.multiSite : info_text.oneSite)
+          if (!res.data) {
+            ctx.scene.text = text.wrong_site
+            ctx.scene.kb = exit_kb
+            await ctx.scene.reenter();
           } else {
-            let allPasswords = '';
-            await res.data.map(el => {
-              allPasswords += `${el.site_name}  _________  <code>${el.password}</code>\n\n`
-            })
-            await replyAndDestroy(ctx, [allPasswords, 'HTML'])
+            ctx.scene.text = `${res.data.site_name}  _________  <code>${res.data.password}</code>`
+            ctx.scene.kb = default_kb
+            await ctx.scene.leave();
           }
         })
         .catch(err => console.log(err))
-      await ctx.scene.leave()
     })
+    getPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
 
     return getPassword;
   }
+
+  getAllPasswords() {
+    const getAllPasswords = new Scenes.BaseScene('getAllPasswords');
+
+    getAllPasswords.hears('Отмена', ctx => {
+      ctx.scene.text = 'Что делаем дальше?'
+      ctx.scene.leave()
+    })
+
+    getAllPasswords.enter(async ctx => {
+      const userID = ctx.message.from.id
+      await axios.get(getApiUrl(['subscriber', userID, 'all-passwords']))
+        .then(async res => {
+          if (!res.data) {
+            ctx.scene.text = text.no_sites
+            ctx.scene.kb = exit_kb
+            await ctx.scene.reenter();
+          } else {
+            ctx.scene.text = '';
+            await res.data.map(el => {
+              ctx.scene.text += `${el.site_name}  _________  <code>${el.password}</code>\n\n`
+            })
+            ctx.scene.kb = default_kb
+            await ctx.scene.leave();
+          }
+        })
+        .catch(err => console.log(err))
+    })
+
+    getAllPasswords.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+
+    return getAllPasswords;
+  }
+
 
   deletePassword() {
     const deletePassword = new Scenes.BaseScene('deletePassword')
