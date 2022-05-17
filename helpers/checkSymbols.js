@@ -1,4 +1,12 @@
-module.exports = function (pass) {
+const {exit_kb} = require("../keyboards");
+module.exports = async function (ctx) {
   const symbols = ['/', '@', '#'];
-  return symbols.find(symbol => pass[0] === symbol)
+  const symbol = symbols.find(symbol => ctx.message.text[0] === symbol)
+
+  if (symbol) {
+    ctx.scene.text = `Ключевое слово не может начинаться на "${symbol}"`
+    ctx.scene.kb = exit_kb
+    await ctx.scene.reenter()
+    return symbol
+  }
 }

@@ -20,11 +20,11 @@ module.exports = class SceneGenerator {
         .then(async res => {
           if (res.data) {
             ctx.scene.text = text.enter_master_password
-            ctx.scene.kb = remove_kb
+            ctx.scene.kb = exit_kb
             await ctx.scene.enter('enterMasterPassword')
           } else {
             ctx.scene.text = text.create_master_password
-            ctx.scene.kb = remove_kb
+            ctx.scene.kb = exit_kb
             await ctx.scene.enter('createMasterPassword')
           }
         })
@@ -37,18 +37,12 @@ module.exports = class SceneGenerator {
 
   enterMasterPassword() {
     const enterMasterPassword = new Scenes.BaseScene('enterMasterPassword')
-
+    leaveSceneButton(enterMasterPassword, {keyboard: remove_kb, text: 'Для начала работы, нажми /start'});
     enterMasterPassword.on('text', async ctx => {
       const userID = ctx.message.from.id
       const pass = ctx.message.text
-      const symbol = checkSymbols(pass)
 
-      if (symbol) {
-        ctx.scene.text = text.wrong_master_password
-        ctx.scene.kb = remove_kb
-        await ctx.scene.reenter()
-        return
-      }
+      if (await checkSymbols(ctx)) return
 
       if (!isKyr(pass)) {
         await axios.get(getApiUrl(['subscriber', userID, 'master-password', ctx.message.text]))
@@ -80,17 +74,11 @@ module.exports = class SceneGenerator {
 
   createMasterPassword() {
     const createMasterPassword = new Scenes.BaseScene('createMasterPassword')
-
+    leaveSceneButton(createMasterPassword, {keyboard: remove_kb, text: 'Для начала работы, нажми /start'});
     createMasterPassword.on('text', async ctx => {
       const pass = ctx.message.text;
-      const symbol = checkSymbols(pass)
 
-      if (symbol) {
-        ctx.scene.text = `Пароль не может начинаться на "${symbol}"`
-        ctx.scene.kb = remove_kb
-        await ctx.scene.reenter()
-        return
-      }
+      if (await checkSymbols(ctx)) return
 
       if (pass) {
         if (!isKyr(pass)) {
@@ -127,14 +115,8 @@ module.exports = class SceneGenerator {
     createPassword.on('text', async ctx => {
       const userID = ctx.message.from.id
       const keyword = ctx.message.text
-      const symbol = checkSymbols(keyword)
 
-      if (symbol) {
-        ctx.scene.text = `Ключевое слово не может начинаться на "${symbol}"`
-        ctx.scene.kb = exit_kb
-        await ctx.scene.reenter()
-        return
-      }
+      if (await checkSymbols(ctx)) return
 
       await axios.post(getApiUrl(['subscriber', userID, 'password']), {keyword})
         .then(res => {
@@ -160,14 +142,8 @@ module.exports = class SceneGenerator {
     getPassword.on('text', async ctx => {
       const userID = ctx.message.from.id
       const keyword = ctx.message.text
-      const symbol = checkSymbols(keyword)
 
-      if (symbol) {
-        ctx.scene.text = `Ключевое слово не может начинаться на "${symbol}"`
-        ctx.scene.kb = exit_kb
-        await ctx.scene.reenter()
-        return
-      }
+      if (await checkSymbols(ctx)) return
 
       await axios.get(getApiUrl(['subscriber', userID, 'password'], {keyword}))
         .then(async res => {
@@ -249,7 +225,6 @@ module.exports = class SceneGenerator {
 
     return editPassword;
   }
-
 
   deletePassword() {
     const deletePassword = new Scenes.BaseScene('deletePassword')
