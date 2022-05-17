@@ -4,7 +4,7 @@ const text = require('./text.json')
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
 const SceneGenerator = require('./scenes/Scenes')
-const {exit_kb} = require("./keyboards");
+const {exit_kb, default_kb} = require("./keyboards");
 const curScene = new SceneGenerator()
 const checkMasterPassword = curScene.checkMasterPassword()
 const createMasterPassword = curScene.createMasterPassword()
@@ -46,29 +46,48 @@ bot.start(async ctx => {
 })
 
 bot.hears('Добавить пароль', async ctx => {
-  await ctx.reply('Введите название сайта', exit_kb)
+  await ctx.reply('Придумай ключевое слово', exit_kb)
   await ctx.scene.enter(isAuthorized(ctx, 'createPassword'))
 })
 
 bot.hears('Запросить пароль', async ctx => {
-  await ctx.reply('Введите название сайта', exit_kb)
+  await ctx.reply('Введи ключевое слово', exit_kb)
   await ctx.scene.enter(isAuthorized(ctx, 'getPassword'))
 });
 
 bot.hears('Посмотреть все пароли', async ctx => {
-  await ctx.reply('Идёт запрос на сервер', exit_kb)
+  await ctx.reply('Идёт запрос на сервер', default_kb)
   await ctx.scene.enter(isAuthorized(ctx, 'getAllPasswords'))
 });
 
 bot.hears('Удалить пароль', async ctx => {
-  await ctx.reply('Введите название сайта', exit_kb)
+  await ctx.reply('Введи ключевое слово', exit_kb)
   await ctx.scene.enter(isAuthorized(ctx, 'deletePassword'))
 })
 
 bot.hears('Редактировать пароль', async ctx => {
-  await ctx.reply('Введите название сайта', exit_kb)
+  await ctx.reply('Введи ключевое слово', exit_kb)
   await ctx.scene.enter(isAuthorized(ctx, 'editPassword'))
 })
+
+bot.on("callback_query", async ctx => {
+  const {type, pass} = JSON.parse(ctx.callbackQuery.data)
+
+  switch (type) {
+    case 'PASSWORD':
+      await console.log(ctx);
+      await ctx.deleteMessage();
+      const replayMessage = await ctx.replyWithHTML(`<code>${pass}</code>`, Markup.inlineKeyboard(
+        [Markup.button.callback('Скопировал', JSON.stringify({type: 'CLEAR_PASSWORD'}))]
+      ))
+      ctx.session.messageToDelete = replayMessage.message_id
+      break;
+    case 'CLEAR_PASSWORD' :
+      await ctx.deleteMessage(ctx.session.messageToDelete);
+      break
+  }
+})
+
 
 bot.launch()
   .then((res, req) => {
