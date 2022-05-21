@@ -1,6 +1,6 @@
 require('dotenv').config()
 
-module.exports = function getApiUrl(path = '', query = {}) {
+module.exports = function(path = '', query = {}) {
   let address = `${process.env.CMS_URL}`+ '/api'
 
     if(Array.isArray(path)) {

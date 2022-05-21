@@ -1,13 +1,8 @@
 const {Scenes, Markup} = require('telegraf')
 const text = require('../text.json')
 const axios = require('axios');
-const getApiUrl = require("../helpers/getApiUrl");
-const isKyr = require("../helpers/isKyr");
-const replyAndDestroy = require('../helpers/replyAndDestroy')
-const noSiteAndReenter = require('../helpers/noSiteAndReenter')
-const leaveSceneButton = require('../helpers/leaveSceneButton')
-const checkSymbols = require('../helpers/checkSymbols')
-const {exit_kb, default_kb, remove_kb} = require('../keyboards')
+const {setPasswordKeyboard, noSiteAndReenter, leaveSceneButton, checkSymbols, getApiUrl, isKyr} = require(`@/helpers`)
+const {exit_kb, default_kb, remove_kb} = require(`@/keyboards`)
 
 
 module.exports = class SceneGenerator {
@@ -20,18 +15,18 @@ module.exports = class SceneGenerator {
         .then(async res => {
           if (res.data) {
             ctx.scene.text = text.enter_master_password
-            ctx.scene.kb = exit_kb
+            ctx.scene.keyboard = exit_kb
             await ctx.scene.enter('enterMasterPassword')
           } else {
             ctx.scene.text = text.create_master_password
-            ctx.scene.kb = exit_kb
+            ctx.scene.keyboard = exit_kb
             await ctx.scene.enter('createMasterPassword')
           }
         })
         .catch(err => console.log(err))
     })
 
-    checkMasterPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+    checkMasterPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
     return checkMasterPassword
   }
 
@@ -51,24 +46,19 @@ module.exports = class SceneGenerator {
               await ctx.deleteMessage()
               ctx.session.authorized = true;
               ctx.scene.text = text.right_master_password
-              ctx.scene.kb = default_kb
+              ctx.scene.keyboard = default_kb
               await ctx.scene.leave();
-            } else {
-              ctx.scene.text = text.wrong_master_password
-              ctx.scene.kb = remove_kb
-              await ctx.scene.reenter()
             }
           })
           .catch(async err => {
             await console.log(err)
           })
-      } else {
-        ctx.scene.text = text.wrong_master_password
-        ctx.scene.kb = remove_kb
-        await ctx.scene.reenter()
       }
+      ctx.scene.text = text.wrong_master_password
+      ctx.scene.keyboard = exit_kb
+      await ctx.scene.reenter()
     })
-    enterMasterPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+    enterMasterPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
     return enterMasterPassword
   }
 
@@ -90,20 +80,20 @@ module.exports = class SceneGenerator {
             .then(async res => {
               if (res.data) {
                 ctx.scene.text = text.new_subscriber
-                ctx.scene.kb = default_kb
+                ctx.scene.keyboard = default_kb
                 await ctx.scene.leave()
               }
             })
             .catch(err => console.log(err))
         } else {
           ctx.scene.text = text.no_cyrillic
-          ctx.scene.kb = remove_kb
+          ctx.scene.keyboard = remove_kb
           await ctx.scene.reenter()
         }
       }
     })
 
-    createMasterPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+    createMasterPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
     return createMasterPassword
   }
 
@@ -119,17 +109,14 @@ module.exports = class SceneGenerator {
       if (await checkSymbols(ctx)) return
 
       await axios.post(getApiUrl(['subscriber', userID, 'password']), {keyword})
-        .then(res => {
-          if (res.data.status) {
-            ctx.scene.text = `Твоё ключевое влово ${keyword} и пароль <code>${res.data.pass}</code>`;
-          } else
-            ctx.scene.text = `Ключевое влово ${keyword} уже было, пароль <code>${res.data.pass}</code>`;
+        .then(async res => {
+          await setPasswordKeyboard(ctx, res.data.password)
         })
         .catch(err => console.log(err))
-      ctx.scene.kb = default_kb
+      ctx.scene.keyboard = default_kb
       await ctx.scene.leave();
     })
-    createPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+    createPassword.leave(async ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
 
     return createPassword
   }
@@ -150,14 +137,12 @@ module.exports = class SceneGenerator {
           if (!res.data) {
             await noSiteAndReenter(ctx)
           } else {
-            ctx.scene.text = `${res.data.keyword}  _________  <code>${res.data.password}</code>`
-            ctx.scene.kb = default_kb
-            await ctx.scene.leave();
+            await setPasswordKeyboard(ctx, res.data.password)
           }
         })
         .catch(err => console.log(err))
     })
-    getPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+    getPassword.leave(async ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
 
     return getPassword;
   }
@@ -174,27 +159,25 @@ module.exports = class SceneGenerator {
 
           if (!res.data) {
             ctx.scene.text = text.no_keywords
-            ctx.scene.kb = default_kb
+            ctx.scene.keyboard = default_kb
           } else {
-            ctx.session.passwords = res.data
             const buttons = [];
 
             await res.data.forEach(el => {
               buttons.push([Markup.button.callback(el.keyword, JSON.stringify({
-                pass: el.password,
-                type: 'PASSWORD',
-                key: el.keyword
+                password: el.password,
+                type: 'PASSWORD'
               }))])
             })
             ctx.scene.text = 'Ваши пароли'
-            ctx.scene.kb = Markup.inlineKeyboard(buttons)
+            ctx.scene.keyboard = Markup.inlineKeyboard(buttons)
           }
         })
         .catch(err => console.log(err))
       await ctx.scene.leave();
     })
 
-    getAllPasswords.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+    getAllPasswords.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
 
     return getAllPasswords;
   }
@@ -211,9 +194,7 @@ module.exports = class SceneGenerator {
       await axios.patch(getApiUrl(['subscriber', userID, 'password'], {keyword}))
         .then(async res => {
           if (res.data) {
-            ctx.scene.text = `${keyword}  _________  <code>${res.data}</code>\n\n`
-            ctx.scene.kb = default_kb
-            await ctx.scene.leave();
+            await setPasswordKeyboard(ctx, res.data)
           } else {
             await noSiteAndReenter(ctx)
           }
@@ -221,7 +202,7 @@ module.exports = class SceneGenerator {
         .catch(err => console.log(err))
     })
 
-    editPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+    editPassword.leave(async ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
 
     return editPassword;
   }
@@ -239,7 +220,7 @@ module.exports = class SceneGenerator {
         .then(async res => {
           if (res.data) {
             ctx.scene.text = `Пароль с ключевым словом ${keyword}, удалён`
-            ctx.scene.kb = default_kb
+            ctx.scene.keyboard = default_kb
             await ctx.scene.leave();
           } else {
             await noSiteAndReenter(ctx)
@@ -248,7 +229,7 @@ module.exports = class SceneGenerator {
         .catch(err => console.log(err))
     })
 
-    deletePassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.kb))
+    deletePassword.leave(async ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
 
     return deletePassword;
   }

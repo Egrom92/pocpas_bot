@@ -1,4 +1,4 @@
-module.exports = async function replyAndDestroy(ctx, reply, timeout = 10000) {
+module.exports = async function(ctx, reply, timeout = 10000) {
   let replyResponse
   if (typeof reply === "string") {
     replyResponse = await ctx.reply(reply)

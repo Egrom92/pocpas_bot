@@ -1,8 +1,9 @@
-const {Telegraf, Scenes, session, Markup} = require('telegraf');
+const {Telegraf, Scenes, session} = require('telegraf');
+require('module-alias/register')
 require('dotenv').config()
 const text = require('./text.json')
 const bot = new Telegraf(process.env.BOT_TOKEN)
-
+const {showPassword} = require('@/helpers')
 const SceneGenerator = require('./scenes/Scenes')
 const {exit_kb, default_kb} = require("./keyboards");
 const curScene = new SceneGenerator()
@@ -71,19 +72,16 @@ bot.hears('Редактировать пароль', async ctx => {
 })
 
 bot.on("callback_query", async ctx => {
-  const {type, pass} = JSON.parse(ctx.callbackQuery.data)
+  const {type, password} = JSON.parse(ctx.callbackQuery.data)
 
   switch (type) {
     case 'PASSWORD':
-      await console.log(ctx);
       await ctx.deleteMessage();
-      const replayMessage = await ctx.replyWithHTML(`<code>${pass}</code>`, Markup.inlineKeyboard(
-        [Markup.button.callback('Скопировал', JSON.stringify({type: 'CLEAR_PASSWORD'}))]
-      ))
-      ctx.session.messageToDelete = replayMessage.message_id
+      const {text, keyboard} = showPassword(password)
+      await ctx.replyWithHTML(text, keyboard)
       break;
     case 'CLEAR_PASSWORD' :
-      await ctx.deleteMessage(ctx.session.messageToDelete);
+      await ctx.deleteMessage();
       break
   }
 })

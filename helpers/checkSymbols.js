@@ -1,4 +1,4 @@
-const {exit_kb} = require("../keyboards");
+const {exit_kb} = require("@/keyboards");
 module.exports = async function (ctx) {
   const symbols = ['/', '@', '#'];
   const symbol = symbols.find(symbol => ctx.message.text[0] === symbol)
