@@ -1,7 +1,8 @@
 const showPassword = require("./showPassword");
-const {default_kb} = require("@/keyboards");
+const {default_kb} = require('@/keyboards');
+
 module.exports = async (ctx, password) => {
-  const {text, keyboard} = showPassword(password)
+  const  {text, keyboard} = await showPassword(password)
   ctx.scene.text = text
   ctx.scene.keyboard = keyboard
   await ctx.scene.leave();

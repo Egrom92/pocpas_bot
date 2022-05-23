@@ -6,6 +6,9 @@ const leaveSceneButton = require('./leaveSceneButton')
 const noSiteAndReenter = require('./noSiteAndReenter')
 const replyAndDestroy = require('./replyAndDestroy')
 const setPasswordKeyboard = require('./setPasswordKeyboard')
+const saveDataToSession = require('./saveDataToSession')
+const clearSessionData = require('./clearSessionData')
+const postPassword = require('./postPassword')
 
 module.exports = {
   showPassword,
@@ -15,5 +18,8 @@ module.exports = {
   leaveSceneButton,
   noSiteAndReenter,
   replyAndDestroy,
-  setPasswordKeyboard
+  setPasswordKeyboard,
+  saveDataToSession,
+  clearSessionData,
+  postPassword
 }

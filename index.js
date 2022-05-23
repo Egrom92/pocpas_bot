@@ -9,6 +9,7 @@ const {exit_kb, default_kb} = require("./keyboards");
 const curScene = new SceneGenerator()
 const checkMasterPassword = curScene.checkMasterPassword()
 const createMasterPassword = curScene.createMasterPassword()
+const sendRequestAgain = curScene.sendRequestAgain()
 const enterMasterPassword = curScene.enterMasterPassword()
 const createPassword = curScene.createPassword()
 const getPassword = curScene.getPassword()
@@ -28,6 +29,7 @@ const stage = new Scenes.Stage([
   checkMasterPassword,
   createMasterPassword,
   enterMasterPassword,
+  sendRequestAgain,
   createPassword,
   getPassword,
   getAllPasswords,
@@ -85,7 +87,6 @@ bot.on("callback_query", async ctx => {
       break
   }
 })
-
 
 bot.launch()
   .then((res, req) => {

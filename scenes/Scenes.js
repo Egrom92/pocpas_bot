@@ -1,8 +1,9 @@
 const {Scenes, Markup} = require('telegraf')
 const text = require('../text.json')
 const axios = require('axios');
-const {setPasswordKeyboard, noSiteAndReenter, leaveSceneButton, checkSymbols, getApiUrl, isKyr} = require(`@/helpers`)
+const {setPasswordKeyboard, noSiteAndReenter, leaveSceneButton, checkSymbols, getApiUrl, isKyr, saveData} = require(`@/helpers`)
 const {exit_kb, default_kb, remove_kb} = require(`@/keyboards`)
+const {postPassword, clearSessionData} = require("../helpers");
 
 
 module.exports = class SceneGenerator {
@@ -47,16 +48,22 @@ module.exports = class SceneGenerator {
               ctx.session.authorized = true;
               ctx.scene.text = text.right_master_password
               ctx.scene.keyboard = default_kb
-              await ctx.scene.leave();
+
+              if (ctx.session.sendRequestAgain) {
+                await ctx.scene.enter('sendRequestAgain');
+              } else {
+                await ctx.scene.leave();
+              }
             }
           })
           .catch(async err => {
             await console.log(err)
           })
+      } else {
+        ctx.scene.text = text.wrong_master_password
+        ctx.scene.keyboard = exit_kb
+        await ctx.scene.reenter()
       }
-      ctx.scene.text = text.wrong_master_password
-      ctx.scene.keyboard = exit_kb
-      await ctx.scene.reenter()
     })
     enterMasterPassword.leave(ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
     return enterMasterPassword
@@ -97,6 +104,21 @@ module.exports = class SceneGenerator {
     return createMasterPassword
   }
 
+  sendRequestAgain() {
+    const sendRequestAgain = new Scenes.BaseScene('sendRequestAgain')
+
+    leaveSceneButton(sendRequestAgain);
+
+    sendRequestAgain.enter(async ctx => {
+      await postPassword(ctx, ctx.session.url, ctx.session.params)
+      await clearSessionData(ctx)
+    })
+
+    // sendRequestAgain.leave(async ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
+
+    return sendRequestAgain
+  }
+
   createPassword() {
     const createPassword = new Scenes.BaseScene('createPassword')
 
@@ -108,13 +130,7 @@ module.exports = class SceneGenerator {
 
       if (await checkSymbols(ctx)) return
 
-      await axios.post(getApiUrl(['subscriber', userID, 'password']), {keyword})
-        .then(async res => {
-          await setPasswordKeyboard(ctx, res.data.password)
-        })
-        .catch(err => console.log(err))
-      ctx.scene.keyboard = default_kb
-      await ctx.scene.leave();
+      await postPassword(ctx, getApiUrl(['subscriber', userID, 'password']), {keyword})
     })
     createPassword.leave(async ctx => ctx.replyWithHTML(ctx.scene.text, ctx.scene.keyboard))
 
